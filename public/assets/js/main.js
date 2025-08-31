@@ -1,0 +1,995 @@
+(function () {
+    "use strict";
+
+    /** === SCROLL EFFECTS === */
+    function toggleScrolled() {
+        const body = document.body;
+        const header = document.querySelector("#header");
+        if (
+            !header?.classList.contains("scroll-up-sticky") &&
+            !header?.classList.contains("sticky-top") &&
+            !header?.classList.contains("fixed-top")
+        )
+            return;
+
+        window.scrollY > 100
+            ? body.classList.add("scrolled")
+            : body.classList.remove("scrolled");
+    }
+
+    /** === STICKY HEADER === */
+    function handleStickyHeader() {
+        const header = document.querySelector("#header");
+        if (!header?.classList.contains("scroll-up-sticky")) return;
+
+        let lastScrollTop = 0;
+
+        window.addEventListener("scroll", () => {
+            const scrollTop =
+                window.pageYOffset || document.documentElement.scrollTop;
+
+            if (scrollTop > lastScrollTop && scrollTop > header.offsetHeight) {
+                header.style.top = `-${header.offsetHeight + 50}px`;
+                header.style.position = "sticky";
+            } else if (scrollTop > header.offsetHeight) {
+                header.style.top = "0";
+                header.style.position = "sticky";
+            } else {
+                header.style.removeProperty("top");
+                header.style.removeProperty("position");
+            }
+
+            lastScrollTop = scrollTop;
+        });
+    }
+
+    /** === MOBILE NAV TOGGLE === */
+    function initMobileNavToggle() {
+        const toggleBtn = document.querySelector(".mobile-nav-toggle");
+        if (!toggleBtn) return;
+
+        // toggle mobile nav open/close
+        toggleBtn.addEventListener("click", () => {
+            document.body.classList.toggle("mobile-nav-active");
+            toggleBtn.classList.toggle("bi-list");
+            toggleBtn.classList.toggle("bi-x");
+        });
+
+        // close menu saat klik link
+        document.querySelectorAll("#navmenu a").forEach((link) => {
+            link.addEventListener("click", () => {
+                if (document.body.classList.contains("mobile-nav-active")) {
+                    document.body.classList.remove("mobile-nav-active");
+                    toggleBtn.classList.add("bi-list");
+                    toggleBtn.classList.remove("bi-x");
+                }
+            });
+        });
+
+        // toggle dropdown
+        document.querySelectorAll(".toggle-dropdown").forEach((toggle) => {
+            toggle.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const parent = toggle.parentElement;
+                const dropdown = parent.querySelector(".dropdown");
+
+                document.querySelectorAll(".mobile-nav .dropdown").forEach(d => {
+                    if (d !== dropdown) d.classList.remove("dropdown-active");
+                });
+                dropdown.classList.toggle("dropdown-active");
+            });
+        });
+    }
+
+    /** === PRELOADER === */
+    function removePreloader() {
+        const preloader = document.querySelector("#preloader");
+        if (preloader) {
+            window.addEventListener("load", () => preloader.remove());
+        }
+    }
+
+    /** === SCROLL TO TOP === */
+    function setupScrollTopButton() {
+        const scrollTopBtn = document.querySelector(".scroll-top");
+
+        function toggleScrollTop() {
+            if (scrollTopBtn) {
+                scrollTopBtn.classList.toggle("active", window.scrollY > 100);
+            }
+        }
+
+        if (scrollTopBtn) {
+            scrollTopBtn.addEventListener("click", (e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            });
+        }
+
+        document.addEventListener("scroll", toggleScrollTop);
+        window.addEventListener("load", toggleScrollTop);
+    }
+
+    /** === AOS === */
+    function initAOS() {
+        $(document).ready(function () {
+            AOS.init({
+                duration: 600,
+                easing: "ease-in-out",
+                once: true,
+                mirror: false,
+            });
+
+            setTimeout(() => {
+                AOS.refresh();
+            }, 500);
+        });
+    }
+
+    /** === GLIGHTBOX === */
+    function initLightbox() {
+        if (typeof GLightbox !== "undefined") {
+            GLightbox({ selector: ".glightbox" });
+        }
+    }
+
+    /** === SWIPER === */
+    function initSwiper() {
+        const wrappers = document.querySelectorAll(".swipper");
+
+        wrappers.forEach(function (wrapper) {
+            const sliderId = wrapper.dataset.sliderId;
+            const swiperElement = wrapper.querySelector(".swiper");
+            const baseId = sliderId?.replace("-slider", "");
+            const prevButton = document.getElementById(`${baseId}-prev`);
+            const nextButton = document.getElementById(`${baseId}-next`);
+            const perPage = parseInt(wrapper.dataset.perPage) || 3;
+            const rows = parseInt(wrapper.dataset.rows) || 2;
+
+            if (!swiperElement) return;
+
+            try {
+                const swiper = new Swiper(swiperElement, {
+                    slidesPerView: perPage,
+                    slidesPerGroup: perPage * rows,
+                    spaceBetween: 16,
+                    loop: false,
+                    grid: {
+                        rows: rows,
+                        fill: "row",
+                    },
+                    navigation: {
+                        nextEl: nextButton,
+                        prevEl: prevButton,
+                    },
+                    pagination: false,
+                    breakpoints: {
+                        0: {
+                            slidesPerView: 1,
+                            grid: { rows: 1 },
+                            slidesPerGroup: 1,
+                        },
+                        576: {
+                            slidesPerView: 1,
+                            grid: { rows: rows },
+                            slidesPerGroup: rows,
+                        },
+                        768: {
+                            slidesPerView: 2,
+                            grid: { rows: rows },
+                            slidesPerGroup: 2 * rows,
+                        },
+                        992: {
+                            slidesPerView: perPage,
+                            grid: { rows: rows },
+                            slidesPerGroup: perPage * rows,
+                        },
+                    },
+                });
+
+                const indicatorsContainer = wrapper.querySelector(
+                    ".carousel-indicators-banner"
+                );
+
+                if (indicatorsContainer) {
+                    indicatorsContainer.innerHTML = "";
+
+                    const totalItems =
+                        swiperElement.querySelectorAll(".swiper-slide").length;
+                    const itemsPerPage = perPage * rows;
+                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+                    for (let i = 0; i < totalPages; i++) {
+                        const li = document.createElement("li");
+                        li.classList.add("page-item");
+
+                        const btn = document.createElement("button");
+                        btn.classList.add("page-link");
+                        btn.textContent = i + 1;
+
+                        btn.addEventListener("click", () => {
+                            swiper.slideTo(i * swiper.params.slidesPerGroup);
+                            updateIndicators(
+                                i,
+                                indicatorsContainer.querySelectorAll("button")
+                            );
+                        });
+
+                        li.appendChild(btn);
+                        indicatorsContainer.appendChild(li);
+                    }
+
+                    const indicators =
+                        indicatorsContainer.querySelectorAll("button");
+
+                    swiper.on("slideChangeTransitionEnd", () => {
+                        const activePage = Math.floor(
+                            swiper.realIndex / swiper.params.slidesPerGroup
+                        );
+                        updateIndicators(activePage, indicators);
+                    });
+
+                    updateIndicators(0, indicators);
+                }
+
+                function updateIndicators(activeIndex, indicators) {
+                    indicators.forEach((btn, idx) => {
+                        btn.classList.toggle("active", idx === activeIndex);
+                    });
+                }
+            } catch (err) {
+                console.error(`[Swiper Error]`, err);
+            }
+        });
+    }
+
+    /** === CAROUSEL INDICATORS AUTO === */
+    function autoCarouselIndicators() {
+        document
+            .querySelectorAll(".carousel-indicators")
+            .forEach((indicators) => {
+                const carousel = indicators.closest(".carousel");
+                carousel
+                    ?.querySelectorAll(".carousel-item")
+                    .forEach((item, index) => {
+                        indicators.innerHTML += `
+                    <li data-bs-target="#${
+                        carousel.id
+                    }" data-bs-slide-to="${index}" ${
+                            index === 0 ? 'class="active"' : ""
+                        }></li>
+                `;
+                    });
+            });
+    }
+
+    /** === Fungsi format Rupiah === */
+    function formatRupiah(angka) {
+        // Convert ke string
+        let number = angka.toString();
+
+        // Hilangkan decimal
+        number = number.replace(/(\.00|,00)$/, "");
+
+        // Hilangkan karakter kecuali digit
+        let cleanString = number.replace(/[^0-9]/g, "");
+
+        if (cleanString === "") return "";
+
+        let sisa = cleanString.length % 3;
+        let rupiah = cleanString.substr(0, sisa);
+        let ribuan = cleanString.substr(sisa).match(/\d{3}/g);
+
+        if (ribuan) {
+            let separator = sisa ? "." : "";
+            rupiah += separator + ribuan.join(".");
+        }
+
+        return "Rp " + rupiah;
+    }
+
+    function formatRupiahChart(angka) {
+        // Validasi Angka
+        if (angka == null || isNaN(angka)) return "Rp 0";
+
+        // Format Angka
+        return "Rp " + Number(angka).toLocaleString("id-ID", { minimumFractionDigits: 0 });
+    }
+
+
+    /** === UNIVERSAL MODAL CRUD === */
+    function initUniversalModal() {
+        console.log("🔎 Cek modal di DOM...");
+        console.log("universalModal:", document.getElementById("universalModal"));
+        console.log("universalForm:", document.getElementById("universalForm"));
+        console.log("modalTitle:", document.getElementById("modalTitle"));
+        console.log("modalBody:", document.getElementById("modalBody"));
+        const modalEl = document.getElementById("universalModal");
+        const modalForm = document.getElementById("universalForm");
+        const modalTitle = document.getElementById("modalTitle");
+        const modalBody = document.getElementById("modalBody");
+
+        if (!modalEl || !modalForm || !modalTitle || !modalBody) {
+            console.warn("⚠️ Elemen modal tidak ditemukan, initUniversalModal dihentikan");
+            return;
+        }
+
+        let currentUrl = "";
+        let currentMethod = "POST";
+        const modal = new bootstrap.Modal(modalEl);
+
+        /** === Helpers === */
+        const createElement = (tag, className, textOrHTML, isHTML = false) => {
+            const el = document.createElement(tag);
+            if (className) el.className = className;
+            if (textOrHTML) {
+                isHTML
+                    ? (el.innerHTML = textOrHTML)
+                    : (el.textContent = textOrHTML);
+            }
+            return el;
+        };
+
+        const buildOptions = (select, options, selectedValue) => {
+            options.forEach((opt) => {
+                const option = document.createElement("option");
+                const val = opt.value ?? opt;
+                const label = opt.label ?? opt;
+                option.value = val;
+                option.textContent = label;
+                if (val == selectedValue) option.selected = true;
+                select.appendChild(option);
+            });
+        };
+
+        const parseFields = (fieldsRaw) => {
+            try {
+                return JSON.parse(fieldsRaw) || {};
+            } catch {
+                return {};
+            }
+        };
+
+        const buildFormFields = (fields) => {
+            modalBody.innerHTML = "";
+            Object.entries(fields).forEach(([name, config]) => {
+                const wrapper = createElement("div", "mb-3");
+
+                if (/alamat/i.test(name) && config.type === "detail") {
+                    wrapper.appendChild(
+                        createElement(
+                            "div",
+                            "form-control-plaintext",
+                            config.value ?? "",
+                            true
+                        )
+                    );
+                } else {
+                    if (config.label) {
+                        wrapper.appendChild(
+                            createElement(
+                                "label",
+                                "form-label fw-bold",
+                                config.label
+                            )
+                        );
+                    }
+                    let input;
+                    if (config.type === "select") {
+                        input = document.createElement("select");
+                        input.name = name;
+                        input.className = "form-control";
+                        buildOptions(
+                            input,
+                            Array.isArray(config.options)
+                                ? config.options
+                                : window[config.options] || [],
+                            config.value
+                        );
+                    } else if (config.type === "textarea") {
+                        input = createElement("textarea", "form-control");
+                        input.name = name;
+                        input.value = config.value || "";
+                    } else {
+                        input = createElement("input", "form-control");
+                        input.type = config.type || "text";
+                        input.name = name;
+                        input.value = config.value || "";
+                    }
+
+                    if (/harga/i.test(name) || /biaya_pengiriman/i.test(name)) {
+                        if (input.value)
+                            input.value = formatRupiah(input.value);
+                        input.addEventListener("input", (e) => {
+                            const formatted = formatRupiah(
+                                e.target.value.toString()
+                            );
+                            e.target.value = formatted;
+                            e.target.setSelectionRange(
+                                formatted.length,
+                                formatted.length
+                            );
+                        });
+                    }
+
+                    if (config.type === "detail") input.readOnly = true;
+                    wrapper.appendChild(input);
+                }
+                modalBody.appendChild(wrapper);
+            });
+        };
+
+        /** === Action Handlers Modal === */
+        const addEditHandler = (btn, action) => {
+            modalTitle.textContent = btn.dataset.title || "Form";
+            currentUrl = btn.dataset.url;
+            currentMethod = btn.dataset.method || "POST";
+            const fields = parseFields(btn.dataset.fields);
+
+            Object.values(fields).forEach((f) => (f.type = f.type || "text"));
+            buildFormFields(fields);
+
+            const submitBtn = modalForm.querySelector("button[type='submit']");
+            submitBtn.textContent = "Simpan";
+            submitBtn.classList.replace("btn-danger", "btn-success");
+            submitBtn.style.display = "";
+            modal.show();
+        };
+
+        const detailHandler = (btn) => {
+            modalTitle.textContent = btn.dataset.title || "Detail";
+            const fields = parseFields(btn.dataset.fields);
+            Object.values(fields).forEach((f) => (f.type = "detail"));
+            buildFormFields(fields);
+            modalForm.querySelector("button[type='submit']").style.display =
+                "none";
+            modal.show();
+        };
+
+        const deleteHandler = (btn) => {
+            Swal.fire({
+                title: "Yakin ingin menghapus?",
+                text: "Data yang dihapus tidak dapat dikembalikan.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Ya, hapus",
+                cancelButtonText: "Batal",
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+                fetch(btn.dataset.url, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector(
+                            'meta[name="csrf-token"]'
+                        ).content,
+                        "Content-Type": "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: JSON.stringify({ _method: "DELETE" }),
+                })
+                    .then((res) => {
+                        if (!res.ok) throw res;
+                        return res.text();
+                    })
+                    .then(() => {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Berhasil",
+                            text: "Data berhasil dihapus.",
+                            timer: 2000,
+                            showConfirmButton: false,
+                        });
+                        setTimeout(() => location.reload(), 500);
+                    })
+                    .catch(() => {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Gagal",
+                            text: "Terjadi kesalahan saat menghapus data.",
+                        });
+                    });
+            });
+        };
+
+        const bayarHandler = (btn) => {
+            console.log("💳 Jalankan BAYAR handler", btn.dataset);
+            Swal.fire({
+                title: "Konfirmasi Pembayaran",
+                text: "Pastikan detail pesanan sudah sesuai. Lanjutkan bayar?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Ya, Bayar",
+                cancelButtonText: "Batal",
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+
+                fetch(btn.dataset.url, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ id_transaksi: btn.dataset.id }),
+                })
+                    .then((res) => {
+                        console.log("📡 BAYAR response status:", res.status);
+                        if (!res.ok) throw res;
+                        return res.json();
+                    })
+                    .then((data) => {
+                        console.log("📦 BAYAR response JSON:", data);
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            Swal.fire({
+                                icon: "success",
+                                title: "Berhasil",
+                                text: "Pembayaran berhasil diproses.",
+                                timer: 2000,
+                                showConfirmButton: false,
+                            });
+                            setTimeout(() => location.reload(), 500);
+                        }
+                    })
+                    .catch(async (err) => {
+                        console.error("🔥 BAYAR error:", err);
+                        const msg = err.json ? (await err.json()).message : "Terjadi kesalahan.";
+                        Swal.fire({
+                            icon: "error",
+                            title: "Gagal",
+                            text: msg,
+                        });
+                    });
+            });
+        };
+
+        const cancelHandler = (btn) => {
+            console.log("❌ Jalankan CANCEL handler", btn.dataset);
+            Swal.fire({
+                title: "Batalkan Pesanan?",
+                text: "Pesanan yang dibatalkan tidak bisa dikembalikan.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Ya, Batalkan",
+                cancelButtonText: "Batal",
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+
+                fetch(btn.dataset.url, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ id_transaksi: btn.dataset.id }),
+                })
+                    .then((res) => {
+                        console.log("📡 CANCEL response status:", res.status);
+                        if (!res.ok) throw res;
+                        return res.json();
+                    })
+                    .then((data) => {
+                        console.log("📦 CANCEL response JSON:", data);
+                        Swal.fire({
+                            icon: "success",
+                            title: "Berhasil",
+                            text: data.message || "Pesanan dibatalkan.",
+                            timer: 2000,
+                            showConfirmButton: false,
+                        });
+                        setTimeout(() => location.reload(), 500);
+                    })
+                    .catch((err) => {
+                        console.error("🔥 CANCEL error:", err);
+                        Swal.fire({
+                            icon: "error",
+                            title: "Gagal",
+                            text: "Tidak bisa membatalkan pesanan.",
+                        });
+                    });
+            });
+        };
+
+        const cancelAdminHandler = async (btn) => {
+            const { value: keterangan } = await Swal.fire({
+                title: 'Batalkan Transaksi?',
+                input: 'textarea',
+                inputLabel: 'Keterangan Admin (opsional)',
+                inputPlaceholder: 'Masukkan alasan pembatalan...',
+                showCancelButton: true,
+                confirmButtonText: 'Batalkan',
+                cancelButtonText: 'Batal',
+                inputAttributes: { 'aria-label': 'Keterangan admin' },
+            });
+
+            if (keterangan === undefined) return; // dibatalkan
+
+            fetch(btn.dataset.url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ keterangan }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: data.message,
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    Swal.fire('Gagal', data.message, 'error');
+                }
+            })
+            .catch(err => {
+                Swal.fire('Gagal', 'Terjadi kesalahan pada server', 'error');
+                console.error(err);
+            });
+        };
+
+        /** === Event Listeners Modal === */
+        document.body.addEventListener("click", (e) => {
+            console.log("👉 Klik di body:", e.target);
+            const btn = e.target.closest("[data-crud]");
+            console.log("🔍 Tombol terdeteksi:", btn);
+            if (!btn) return;
+
+            const action = btn.dataset.crud;
+            console.log("🎯 Action:", action);
+
+            switch (action) {
+                case "add":
+                case "edit":
+                    addEditHandler(btn, action);
+                    break;
+                case "detail":
+                    detailHandler(btn);
+                    break;
+                case "delete":
+                    deleteHandler(btn);
+                    break;
+                case "bayar":
+                    bayarHandler(btn);
+                    break;
+                case "cancel":
+                    cancelHandler(btn);
+                    break;
+                case 'cancel-admin':
+                    cancelAdminHandler(btn);
+                    break;
+            }
+        });
+
+        modalForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        console.log("📤 Submit form ke:", currentUrl, "Method:", currentMethod);
+
+        const formData = new FormData(modalForm);
+        if (currentMethod !== "POST") formData.append("_method", currentMethod);
+
+        for (const [key, val] of formData.entries()) {
+            if (/harga/i.test(key) || /biaya_pengiriman/i.test(key)) {
+                formData.set(key, val.replace(/[^0-9]/g, ""));
+            }
+        }
+
+        try {
+            const res = await fetch(currentUrl, {
+                method: "POST",
+                headers: {
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: formData,
+            });
+
+            console.log("📡 FORM response status:", res.status);
+
+            if (!res.ok) {
+                if (res.status === 422) {
+                    const errorData = await res.json();
+                    console.error("⚠️ Validasi error:", errorData.errors);
+                    const errorMessages = Object.values(errorData.errors).flat().join("<br>");
+                    throw { type: "validation", message: errorMessages };
+                }
+                throw { type: "server", message: await res.text() };
+            }
+
+            modal.hide();
+            Swal.fire({
+                icon: "success",
+                title: "Berhasil",
+                text: currentMethod === "POST" ? "Data berhasil ditambahkan." : "Data berhasil diperbarui.",
+                timer: 2000,
+                showConfirmButton: false,
+            });
+            setTimeout(() => location.reload(), 500);
+        } catch (err) {
+            console.error("🔥 FORM error:", err);
+            Swal.fire({
+                icon: err.type === "validation" ? "warning" : "error",
+                title: err.type === "validation" ? "Validasi Gagal" : "Gagal",
+                html: err.message,
+            });
+        }
+    });
+}
+
+    /** === SUMMERNOTE INIT === */
+    function initSummernote() {
+        if (typeof $ !== "undefined" && $.fn.summernote) {
+            $(".summernote").summernote({ height: 200 });
+        }
+    }
+
+    /** === SIDEBAR TOGGLE === */
+    function initSidebarToggle() {
+        const toggleButton = document.getElementById("sidebarToggle");
+        const body = document.body;
+
+        // Saat halaman dimuat, cek preferensi
+        if (localStorage.getItem("sb|sidebar-toggle") === "toggled") {
+            document.body.classList.toggle("sb-sidenav-toggled");
+            localStorage.removeItem("sb|sidebar-toggle");
+        }
+
+        if (toggleButton) {
+            toggleButton.addEventListener("click", function (e) {
+                e.preventDefault();
+                body.classList.toggle("sb-sidenav-toggled");
+                // Simpan preferensi di localStorage
+                if (body.classList.contains("sb-sidenav-toggled")) {
+                    localStorage.setItem("sb|sidebar-toggle", "toggled");
+                }
+                if (!body.classList.contains("sb-sidenav-toggled")) {
+                    localStorage.setItem("sb|sidebar-toggle", "toggled");
+                }
+            });
+        }
+    }
+
+    /** === HELPER CHART === */
+    // Fungsi format rupiah
+    function formatRupiahChart(angka) {
+        if (angka == null || isNaN(angka)) return "Rp 0";
+        return "Rp " + Number(angka).toLocaleString("id-ID", { minimumFractionDigits: 0 });
+    }
+
+
+    // Opsi Chart umum
+    const chartOptions = {
+        responsive: true,
+        tooltips: {
+            callbacks: {
+                label: function(tooltipItem) {
+                    return formatRupiahChart(tooltipItem.yLabel);
+                }
+            }
+        },
+        scales: {
+            yAxes: [{
+                ticks: {
+                    beginAtZero: true,
+                    callback: function(value) {
+                        return formatRupiahChart(value);
+                    }
+                }
+            }]
+        }
+    };
+
+    /** === CHART KEUANGAN BULANAN === */
+    function initChartKeuanganBulanan() {
+        const chartEl = document.getElementById("chartKeuanganBulanan");
+        if (!chartEl) return;
+
+        const chartData = JSON.parse(chartEl.dataset.chart || "[]");
+        const labels = chartData.map(d => d.bulan);
+        const pendapatan = chartData.map(d => parseFloat(d.pendapatan) || 0);
+        const pengeluaran = chartData.map(d => parseFloat(d.pengeluaran) || 0);
+        const bersih = chartData.map(d => parseFloat(d.bersih) || 0);
+
+        new Chart(chartEl.getContext("2d"), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: "Pendapatan", data: pendapatan, borderColor: "green", backgroundColor: "rgba(0,128,0,0.05)", fill: false, borderWidth: 2 },
+                    { label: "Pengeluaran", data: pengeluaran, borderColor: "red", backgroundColor: "rgba(255,0,0,0.05)", fill: false, borderWidth: 2 },
+                    { label: "Pendapatan Bersih", data: bersih, borderColor: "blue", backgroundColor: "rgba(0,0,255,0.05)", fill: false, borderWidth: 2 },
+                ]
+            },
+            options: chartOptions
+        });
+    }
+
+    /** === CHART KEUANGAN TAHUNAN === */
+    function initChartKeuanganTahunan() {
+        const chartEl = document.getElementById("chartKeuanganTahunan");
+        if (!chartEl) return;
+
+        const chartData = JSON.parse(chartEl.dataset.chart || "[]");
+        const labels = chartData.map(d => d.tahun);
+        const pendapatan = chartData.map(d => parseFloat(d.pendapatan) || 0);
+        const pengeluaran = chartData.map(d => parseFloat(d.pengeluaran) || 0);
+        const bersih = chartData.map(d => parseFloat(d.bersih) || 0);
+
+        new Chart(chartEl.getContext("2d"), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: "Pendapatan", data: pendapatan, backgroundColor: "rgba(0,128,0,0.6)" },
+                    { label: "Pengeluaran", data: pengeluaran, backgroundColor: "rgba(255,0,0,0.6)" },
+                    { label: "Pendapatan Bersih", data: bersih, backgroundColor: "rgba(0,0,255,0.6)" },
+                ]
+            },
+            options: chartOptions
+        });
+    }
+
+    /** === CHART PANEN & TANAMAN === */
+    function initChartPanenTanaman() {
+        const chartEl = document.getElementById("chartPanenTanaman");
+        if (!chartEl) return;
+
+        let chartData;
+        try {
+            chartData = JSON.parse(chartEl.dataset.chart);
+        } catch (e) {
+            console.error(
+                "[Chart Error] Gagal parse data chart Panen & Tanaman:",
+                e
+            );
+            return;
+        }
+
+        const labels = chartData.map((d) => d.bulan);
+        const dataPanen = chartData.map((d) => d.panen);
+        const dataEksternal = chartData.map((d) => d.eksternal);
+        const dataBibit = chartData.map((d) => d.bibit);
+
+        new Chart(chartEl.getContext("2d"), {
+            type: "line",
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: "Jumlah Panen",
+                        data: dataPanen,
+                        borderColor: "#28a745",
+                        backgroundColor: "rgba(40,167,69,0.2)",
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: "Produk Eksternal",
+                        data: dataEksternal,
+                        borderColor: "#17a2b8",
+                        backgroundColor: "rgba(23,162,184,0.2)",
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: "Stok Bibit",
+                        data: dataBibit,
+                        borderColor: "#ffc107",
+                        backgroundColor: "rgba(255,193,7,0.2)",
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                let val = ctx.raw;
+                                if (
+                                    ctx.dataset.label.includes("Panen") ||
+                                    ctx.dataset.label.includes("Eksternal")
+                                ) {
+                                    return val >= 1000
+                                        ? (val / 1000).toFixed(2) + " ton"
+                                        : val + " kg";
+                                } else if (
+                                    ctx.dataset.label.includes("Bibit")
+                                ) {
+                                    return (
+                                        val.toLocaleString("id-ID") + " batang"
+                                    );
+                                }
+                                return val;
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    y: { beginAtZero: true },
+                },
+            },
+        });
+    }
+
+    /** === PENGIRIMAN KETENTUAN === */
+    function initPengirimanKetentuan() {
+        const selectPengiriman = document.getElementById("jenis_pengiriman");
+        const infoPengiriman = document.getElementById("info_pengiriman");
+        const infoHarga = document.getElementById("info_harga");
+
+        if (!selectPengiriman || !infoPengiriman || !infoHarga) {
+            console.warn("[initPengirimanKetentuan] Elemen tidak ditemukan.");
+            return;
+        }
+
+        function updateKetentuan() {
+            switch (selectPengiriman.value) {
+                case "ditanggung_pembeli":
+                    infoPengiriman.innerHTML =
+                        "<strong>Ditanggung Pembeli:</strong> Pembeli bertanggung jawab sepenuhnya dalam mengatur ekspedisi dan menanggung seluruh biaya pengiriman.";
+                    infoHarga.innerHTML =
+                        "Catatan: Total harga yang tertera belum termasuk biaya pengiriman, karena seluruh biaya ongkos kirim menjadi tanggung jawab pembeli.";
+                    break;
+                case "ditanggung_penjual":
+                    infoPengiriman.innerHTML =
+                        "<strong>Ditanggung Penjual:</strong> Pengaturan ekspedisi, biaya pengiriman, dan nomor resi akan dikonfirmasi oleh pihak penjual.";
+                    infoHarga.innerHTML =
+                        "Catatan: Akan ada biaya tambahan pengiriman yang akan dikonfirmasi oleh penjual dan harus diselesaikan pembeli sebelum proses pengiriman dilakukan.";
+                    break;
+                case "ditanggung_bersama":
+                    infoPengiriman.innerHTML =
+                        "<strong>Ditanggung Bersama:</strong> Biaya pengiriman akan dibagi sesuai kesepakatan bersama antara pembeli dan penjual.";
+                    infoHarga.innerHTML =
+                        "Catatan: Besaran biaya ongkos kirim akan ditentukan berdasarkan hasil kesepakatan antara kedua belah pihak.";
+                    break;
+            }
+        }
+
+        selectPengiriman.addEventListener("change", updateKetentuan);
+        updateKetentuan(); // tampilkan ketentuan default saat halaman dimuat
+    }
+
+    /** === INIT ALL === */
+    document.addEventListener("DOMContentLoaded", () => {
+        toggleScrolled();
+        handleStickyHeader();
+        initMobileNavToggle();
+        removePreloader();
+        setupScrollTopButton();
+        initAOS();
+        initLightbox();
+        initSwiper();
+        autoCarouselIndicators();
+        initUniversalModal();
+        initSummernote();
+        initSidebarToggle();
+        initChartPanenTanaman();
+        initPengirimanKetentuan();
+        initChartKeuanganBulanan();
+        initChartKeuanganTahunan();
+    });
+
+    document.addEventListener("scroll", toggleScrolled);
+})();
