@@ -11,7 +11,9 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- Main JS -->
-<script src="{{ asset('assets/js/main.js') }}?v={{ filemtime(public_path('assets/js/main.js')) }}"></script>
+<script
+    src="{{ asset('assets/js/main.js') }}?v={{ file_exists(public_path('assets/js/main.js')) ? filemtime(public_path('assets/js/main.js')) : time() }}">
+</script>
 
 <!-- Tidio Live Chat -->
 {{-- <script src="//code.tidio.co/0pr9g5tuwokaqzb52hjeaujqhmjegvb3.js" async></script> --}}

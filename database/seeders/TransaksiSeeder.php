@@ -23,9 +23,10 @@ class TransaksiSeeder extends Seeder
             $tanggal = Carbon::create($tahun, 8, ($minggu - 1) * 7 + 1);
 
             for ($i = 0; $i < 3; $i++) {
-                // Random status: selesai atau gagal
                 $status = ['selesai', 'gagal'][rand(0, 1)];
-                $keterangan = $status === 'gagal' ? 'Dibatalkan oleh admin' : null;
+                $keterangan = $status === 'gagal' ? 'Dibatalkan oleh admin' : 'Transaksi berjalan lancar';
+
+                $createdAt = $tanggal->copy()->addDays($i);
 
                 $transaksi = Transaksi::create([
                     'id' => Str::uuid(),
@@ -42,10 +43,11 @@ class TransaksiSeeder extends Seeder
                     'status' => $status,
                     'keterangan' => $keterangan,
                     'payment_url' => null,
-                    'created_at' => $tanggal->copy()->addDays($i),
+                    'created_at' => $createdAt,
+                    'updated_at' => now(),
+                    'estimasi_pengiriman' => $createdAt->copy()->addDays(rand(2, 7)), // estimasi pengiriman 2-7 hari setelah dibuat
                 ]);
 
-                // Tambah detail transaksi
                 $produk = $produkSample->random();
                 $jumlah = rand(1, 5);
                 $hargaSatuan = $produk->harga ?? rand(20000, 50000);
@@ -66,7 +68,9 @@ class TransaksiSeeder extends Seeder
 
             for ($i = 0; $i < 5; $i++) {
                 $status = ['selesai', 'gagal'][rand(0, 1)];
-                $keterangan = $status === 'gagal' ? 'Dibatalkan oleh admin' : null;
+                $keterangan = $status === 'gagal' ? 'Dibatalkan oleh admin' : 'Transaksi berjalan lancar';
+
+                $createdAt = $tanggalAwalBulan->copy()->addDays($i * 3);
 
                 $transaksi = Transaksi::create([
                     'id' => Str::uuid(),
@@ -83,11 +87,11 @@ class TransaksiSeeder extends Seeder
                     'status' => $status,
                     'keterangan' => $keterangan,
                     'payment_url' => null,
-                    'created_at' => $tanggalAwalBulan->copy()->addDays($i * 3),
+                    'created_at' => $createdAt,
                     'updated_at' => now(),
+                    'estimasi_pengiriman' => $createdAt->copy()->addDays(rand(3, 10)),
                 ]);
 
-                // Tambah detail transaksi
                 $produk = $produkSample->random();
                 $jumlah = rand(1, 8);
                 $hargaSatuan = $produk->harga ?? rand(25000, 60000);

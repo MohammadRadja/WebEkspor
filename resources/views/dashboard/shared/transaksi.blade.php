@@ -72,6 +72,9 @@
                                 <th>Jenis Pengiriman</th>
                                 <th>Nama Ekspedisi</th>
                                 <th>Biaya Pengiriman</th>
+                                <th>Tanggal Transaksi</th>
+                                <th>Estimasi Pengiriman</th>
+                                <th>Hari Estimasi</th>
                                 <th>No Resi</th>
                                 <th>Status</th>
                                 <th>Keterangan</th>
@@ -105,6 +108,9 @@
                                     <td>{{ ucwords(str_replace('_', ' ', $t->jenis_pengiriman)) }}</td>
                                     <td>{{ $t->ekspedisi }}</td>
                                     <td>{{ rupiah($t->biaya_pengiriman) }}</td>
+                                    <td>{{ format_tanggal($t->created_at) }}</td>
+                                    <td>{{ format_tanggal($t->estimasi_pengiriman) }}</td>
+                                    <td>{{ format_hari($t->created_at, $t->estimasi_pengiriman) }}</td>
                                     <td>{{ $t->no_resi }}</td>
                                     @php
                                         $badgeColors = [
@@ -136,10 +142,10 @@
                                                 <i class="fas fa-info-circle"></i>
                                             </button>
 
-                                            {{-- Biaya Pengiriman --}}
+                                            {{-- Update Pengiriman & Estimasi --}}
                                             @if ($t->status === 'menunggu' && in_array($t->jenis_pengiriman, ['ditanggung_penjual', 'ditanggung_bersama']))
                                                 <button type="button" class="btn btn-sm btn-warning" data-crud="edit"
-                                                    data-title="Isi Biaya Pengiriman" data-method="PATCH"
+                                                    data-title="Update Pengiriman & Estimasi" data-method="PATCH"
                                                     data-url="{{ route('transaksi.update', $t->id) }}"
                                                     data-fields='{
                                                         "ekspedisi": {
@@ -161,6 +167,25 @@
                                                         "biaya_pengiriman": {
                                                             "label": "Biaya Pengiriman",
                                                             "value": "{{ $t->biaya_pengiriman }}"
+                                                        },
+                                                        "estimasi_pengiriman": {
+                                                            "label": "Estimasi Pengiriman",
+                                                            "type": "date",
+                                                            "value": "{{ $t->estimasi_pengiriman }}",
+                                                            "attributes": {
+                                                                "data-created-at": "{{ $t->created_at->format('Y-m-d') }}"
+                                                            }
+                                                        },
+                                                        "hari_estimasi": {
+                                                            "label": "Estimasi Hari",
+                                                            "type": "text",
+                                                            "value": "",
+                                                            "attributes": { "readonly": true }
+                                                        },
+                                                        "keterangan": {
+                                                            "label": "Keterangan",
+                                                            "type": "textarea",
+                                                            "value": "{{ $t->keterangan }}"
                                                         }
                                                     }'
                                                     title="Isi Biaya Pengiriman">

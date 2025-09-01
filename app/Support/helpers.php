@@ -11,10 +11,26 @@ if (!function_exists('asset_or_default')) {
         return File::exists(public_path($path)) ? asset($path) : asset($default);
     }
 }
+if (!function_exists('format_hari')) {
+    function format_hari($start, $end): string
+    {
+        if (!$start || !$end) return '-';
+
+        $startDate = \Carbon\Carbon::parse($start)->startOfDay();
+        $endDate = \Carbon\Carbon::parse($end)->startOfDay();
+
+        $days = $startDate->diffInDays($endDate);
+
+        return $days . ' hari';
+    }
+}
 
 if (!function_exists('format_tanggal')) {
     function format_tanggal($tanggal, $format = 'd M Y'): string
     {
+        if (!$tanggal) {
+            return '-';
+        }
         return Carbon::parse($tanggal)->translatedFormat($format);
     }
 }

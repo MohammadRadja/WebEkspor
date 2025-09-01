@@ -170,7 +170,7 @@ class TransaksiController extends Controller
                 $transaksi->update(['status' => 'proses']);
                 $this->notify->success('Transaksi berhasil dibuat. Silakan segera melakukan pembayaran karena biaya pengiriman ditanggung pembeli.', 'Pembayaran Segera', $transaksi->id);
             } else {
-                $this->notify->success('Transaksi berhasil dibuat. Silakan menunggu, admin akan menginput detail ekspedisi dan biaya pengiriman sebelum Anda melakukan pembayaran.', 'Menunggu Konfirmasi', $transaksi->id);
+                $this->notify->success('Transaksi berhasil dibuat. Silakan menunggu, admin akan menginput detail ekspedisi, estimasi pengiriman, biaya pengiriman, dan keterangan sebelum Anda melakukan pembayaran.', 'Menunggu Konfirmasi', $transaksi->id);
             }
 
             // Jika berasal dari keranjang
@@ -202,7 +202,7 @@ class TransaksiController extends Controller
                 $subtotal = $produk->harga * $validated['jumlah'];
                 $subquantity = 500 * $validated['jumlah']; // jumlah dalam satuan kecil (misal gram)
 
-                // ✅ Cek apakah stok mencukupi sebelum buat transaksi
+                // Cek apakah stok mencukupi sebelum buat transaksi
                 if ($produk->stok < $subquantity) {
                     $this->notify->error('Stok produk tidak mencukupi. Minimal pembelian adalah 500 satuan dan stok harus cukup.', 'Stok Tidak Cukup');
 
@@ -210,7 +210,7 @@ class TransaksiController extends Controller
                     return redirect('/product')->with('stok_kurang', 'Stok produk tidak mencukupi. Silakan kurangi jumlah pembelian.');
                 }
 
-                // ✅ Buat detail transaksi
+                // Buat detail transaksi
                 $transaksi->detailTransaksi()->create([
                     'id_produk' => $produk->id,
                     'jumlah' => $validated['jumlah'],
@@ -218,7 +218,7 @@ class TransaksiController extends Controller
                     'sub_total' => $subtotal,
                 ]);
 
-                // ✅ Kurangi stok
+                // Kurangi stok
                 $produk->stok -= $subquantity;
                 $produk->save();
             }
@@ -284,6 +284,8 @@ class TransaksiController extends Controller
                 'ekspedisi' => 'nullable|string',
                 'biaya_pengiriman' => 'nullable|numeric|min:0',
                 'no_resi' => 'nullable|string',
+                'estimasi_pengiriman' => 'required|date',
+                'keterangan' => 'nullable|string|max:500',
             ]);
 
             $transaksi = Transaksi::findOrFail($id);
@@ -294,38 +296,36 @@ class TransaksiController extends Controller
                 $validated['total_harga'] = $total_harga_sebelumnya + $validated['biaya_pengiriman'];
             }
 
-            $notifikasiPengiriman = false;
-            $notifikasiSelesai = false;
-
+            // Update status otomatis
             if (!empty($validated['no_resi'])) {
                 $validated['status'] = 'selesai';
-                $notifikasiSelesai = true;
-            }
-
-            if (!empty($validated['biaya_pengiriman']) && !empty($validated['ekspedisi'])) {
+            } elseif (!empty($validated['biaya_pengiriman']) && !empty($validated['ekspedisi']) && !empty($validated['estimasi_pengiriman'])) {
                 $validated['status'] = 'proses';
-                $notifikasiPengiriman = true;
             }
 
             $transaksi->update($validated);
 
             $notify = Notifications::where('id_transaksi', $transaksi->id)->latest()->first();
 
-            if ($notifikasiSelesai && $notify) {
-                $notify->update([
-                    'type' => 'success',
-                    'title' => 'Pesanan Selesai',
-                    'message' => 'Pesanan Anda dengan transaksi #' . $transaksi->id . ' telah selesai dan sedang dalam perjalanan dengan nomor resi ' . $validated['no_resi'] . '.',
-                ]);
-            } elseif ($notifikasiPengiriman && $notify) {
-                $notify->update([
-                    'type' => 'info',
-                    'title' => 'Pengiriman Diproses',
-                    'message' => 'Biaya pengiriman dan ekspedisi untuk transaksi #' . $transaksi->id . ' telah ditentukan oleh admin. Silakan melanjutkan pembayaran agar pesanan Anda dapat segera diproses.',
-                ]);
+            // Update notifikasi
+            if ($notify) {
+                if ($transaksi->status === 'selesai') {
+                    $notify->update([
+                        'type' => 'success',
+                        'title' => 'Pesanan Selesai',
+                        'message' => 'Pesanan Anda dengan transaksi #' . $transaksi->id . ' telah selesai dan sedang dalam perjalanan dengan nomor resi ' . $validated['no_resi'] . '.',
+                    ]);
+                } elseif ($transaksi->status === 'proses') {
+                    $notify->update([
+                        'type' => 'info',
+                        'title' => 'Pengiriman Diproses',
+                        'message' => 'Transaksi #' . $transaksi->id . ' sedang diproses. Estimasi Pengiriman: ' . format_tanggal($validated['estimasi_pengiriman']) .
+                            (!empty($validated['keterangan']) ? ', Keterangan: ' . $validated['keterangan'] : ''),
+                    ]);
+                }
             }
 
-            // === Perbedaan utama: deteksi AJAX ===
+            // Response AJAX
             if ($request->ajax()) {
                 return response()->json([
                     'success' => true,
@@ -336,6 +336,8 @@ class TransaksiController extends Controller
                         'biaya_pengiriman' => $transaksi->biaya_pengiriman,
                         'biaya_pengiriman_format' => rupiah($transaksi->biaya_pengiriman),
                         'no_resi' => $transaksi->no_resi,
+                        'estimasi_pengiriman' => format_tanggal($transaksi->estimasi_pengiriman),
+                        'keterangan' => $transaksi->keterangan,
                         'status' => $transaksi->status,
                     ],
                 ]);

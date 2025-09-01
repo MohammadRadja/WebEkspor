@@ -12,6 +12,8 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- Custom JS -->
-<script src="{{ asset('assets/js/main.js') }}"></script>
+<script
+    src="{{ asset('assets/js/main.js') }}?v={{ file_exists(public_path('assets/js/main.js')) ? filemtime(public_path('assets/js/main.js')) : time() }}">
+</script>
 
 @stack('scripts')

@@ -33,12 +33,12 @@
                     @php
                         $status = $notify->transaksi->status ?? '';
                         $badgeColor = match ($status) {
-                            'menunggu' => 'secondary',
+                            'menunggu' => 'info',
                             'proses' => 'warning',
                             'dibayar' => 'success',
                             'gagal' => 'danger',
                             'expired' => 'danger',
-                            default => 'info',
+                            default => 'secondary',
                         };
                     @endphp
 
@@ -133,6 +133,10 @@
                                             <tr>
                                                 <th>Total Harga</th>
                                                 <td><strong>{{ rupiah($notify->transaksi->total_harga) }}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Keterangan</th>
+                                                <td>{{ $notify->transaksi->keterangan ?? '-' }}</td>
                                             </tr>
                                         </table>
 

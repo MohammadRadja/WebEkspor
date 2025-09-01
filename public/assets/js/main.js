@@ -300,18 +300,12 @@
 
     /** === UNIVERSAL MODAL CRUD === */
     function initUniversalModal() {
-        console.log("🔎 Cek modal di DOM...");
-        console.log("universalModal:", document.getElementById("universalModal"));
-        console.log("universalForm:", document.getElementById("universalForm"));
-        console.log("modalTitle:", document.getElementById("modalTitle"));
-        console.log("modalBody:", document.getElementById("modalBody"));
         const modalEl = document.getElementById("universalModal");
         const modalForm = document.getElementById("universalForm");
         const modalTitle = document.getElementById("modalTitle");
         const modalBody = document.getElementById("modalBody");
 
         if (!modalEl || !modalForm || !modalTitle || !modalBody) {
-            console.warn("⚠️ Elemen modal tidak ditemukan, initUniversalModal dihentikan");
             return;
         }
 
@@ -353,72 +347,102 @@
 
         const buildFormFields = (fields) => {
             modalBody.innerHTML = "";
+
             Object.entries(fields).forEach(([name, config]) => {
-                const wrapper = createElement("div", "mb-3");
+                const wrapper = document.createElement("div");
+                wrapper.className = "mb-3";
 
-                if (/alamat/i.test(name) && config.type === "detail") {
-                    wrapper.appendChild(
-                        createElement(
-                            "div",
-                            "form-control-plaintext",
-                            config.value ?? "",
-                            true
-                        )
-                    );
-                } else {
-                    if (config.label) {
-                        wrapper.appendChild(
-                            createElement(
-                                "label",
-                                "form-label fw-bold",
-                                config.label
-                            )
-                        );
-                    }
-                    let input;
-                    if (config.type === "select") {
-                        input = document.createElement("select");
-                        input.name = name;
-                        input.className = "form-control";
-                        buildOptions(
-                            input,
-                            Array.isArray(config.options)
-                                ? config.options
-                                : window[config.options] || [],
-                            config.value
-                        );
-                    } else if (config.type === "textarea") {
-                        input = createElement("textarea", "form-control");
-                        input.name = name;
-                        input.value = config.value || "";
-                    } else {
-                        input = createElement("input", "form-control");
-                        input.type = config.type || "text";
-                        input.name = name;
-                        input.value = config.value || "";
-                    }
-
-                    if (/harga/i.test(name) || /biaya_pengiriman/i.test(name)) {
-                        if (input.value)
-                            input.value = formatRupiah(input.value);
-                        input.addEventListener("input", (e) => {
-                            const formatted = formatRupiah(
-                                e.target.value.toString()
-                            );
-                            e.target.value = formatted;
-                            e.target.setSelectionRange(
-                                formatted.length,
-                                formatted.length
-                            );
-                        });
-                    }
-
-                    if (config.type === "detail") input.readOnly = true;
-                    wrapper.appendChild(input);
+                // Label
+                if (config.label) {
+                    const label = document.createElement("label");
+                    label.className = "form-label fw-bold";
+                    label.textContent = config.label;
+                    wrapper.appendChild(label);
                 }
+
+                // Input / Select / Textarea
+                let input;
+                if (config.type === "select") {
+                    input = document.createElement("select");
+                    input.name = name;
+                    input.className = "form-control";
+                    const options = Array.isArray(config.options) ? config.options : window[config.options] || [];
+                    options.forEach(opt => {
+                        const option = document.createElement("option");
+                        const val = opt.value ?? opt;
+                        const label = opt.label ?? opt;
+                        option.value = val;
+                        option.textContent = label;
+                        if (val == config.value) option.selected = true;
+                        input.appendChild(option);
+                    });
+                } else if (config.type === "textarea") {
+                    input = document.createElement("textarea");
+                    input.name = name;
+                    input.className = "form-control";
+                    input.value = config.value || "";
+                } else {
+                    input = document.createElement("input");
+                    input.type = config.type || "text";
+                    input.name = name;
+                    input.className = "form-control";
+                    input.value = config.value || "";
+                }
+
+                // Set attributes dari JSON
+                if (config.attributes) {
+                    Object.entries(config.attributes).forEach(([attr, val]) => {
+                        input.setAttribute(attr, val);
+                    });
+                }
+
+                // Format Rupiah
+                if (/harga/i.test(name) || /biaya_pengiriman/i.test(name)) {
+                    if (input.value) input.value = formatRupiah(input.value);
+                    input.addEventListener("input", e => {
+                        const formatted = formatRupiah(e.target.value.toString());
+                        e.target.value = formatted;
+                        e.target.setSelectionRange(formatted.length, formatted.length);
+                    });
+                }
+
+                wrapper.appendChild(input);
                 modalBody.appendChild(wrapper);
             });
+
+            // Hitung Hari Estimasi
+            const estimasiInput = modalBody.querySelector('input[name="estimasi_pengiriman"]');
+            const hariInput = modalBody.querySelector('input[name="hari_estimasi"]');
+
+            if (estimasiInput && hariInput) {
+                const createdAtStr = estimasiInput.getAttribute('data-created-at');
+
+                const updateHari = () => {
+                    if (!estimasiInput.value || !createdAtStr) {
+                        hariInput.value = '';
+                        return;
+                    }
+
+                    const createdAt = new Date(createdAtStr);
+                    const estimasi = new Date(estimasiInput.value);
+
+                    if (isNaN(createdAt) || isNaN(estimasi)) {
+                        hariInput.value = '';
+                        return;
+                    }
+
+                    const diffTime = estimasi - createdAt;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    hariInput.value = diffDays + ' hari';
+                };
+
+                updateHari();
+                estimasiInput.addEventListener('change', updateHari);
+            } else {
+                console.error("Input Estimasi Pengiriman atau Hari Estimasi tidak ditemukan!");
+            }
         };
+
 
         /** === Action Handlers Modal === */
         const addEditHandler = (btn, action) => {
@@ -495,7 +519,6 @@
         };
 
         const bayarHandler = (btn) => {
-            console.log("💳 Jalankan BAYAR handler", btn.dataset);
             Swal.fire({
                 title: "Konfirmasi Pembayaran",
                 text: "Pastikan detail pesanan sudah sesuai. Lanjutkan bayar?",
@@ -516,12 +539,10 @@
                     body: JSON.stringify({ id_transaksi: btn.dataset.id }),
                 })
                     .then((res) => {
-                        console.log("📡 BAYAR response status:", res.status);
                         if (!res.ok) throw res;
                         return res.json();
                     })
                     .then((data) => {
-                        console.log("📦 BAYAR response JSON:", data);
                         if (data.redirect_url) {
                             window.location.href = data.redirect_url;
                         } else {
@@ -536,7 +557,6 @@
                         }
                     })
                     .catch(async (err) => {
-                        console.error("🔥 BAYAR error:", err);
                         const msg = err.json ? (await err.json()).message : "Terjadi kesalahan.";
                         Swal.fire({
                             icon: "error",
@@ -548,7 +568,6 @@
         };
 
         const cancelHandler = (btn) => {
-            console.log("❌ Jalankan CANCEL handler", btn.dataset);
             Swal.fire({
                 title: "Batalkan Pesanan?",
                 text: "Pesanan yang dibatalkan tidak bisa dikembalikan.",
@@ -571,12 +590,10 @@
                     body: JSON.stringify({ id_transaksi: btn.dataset.id }),
                 })
                     .then((res) => {
-                        console.log("📡 CANCEL response status:", res.status);
                         if (!res.ok) throw res;
                         return res.json();
                     })
                     .then((data) => {
-                        console.log("📦 CANCEL response JSON:", data);
                         Swal.fire({
                             icon: "success",
                             title: "Berhasil",
@@ -587,7 +604,6 @@
                         setTimeout(() => location.reload(), 500);
                     })
                     .catch((err) => {
-                        console.error("🔥 CANCEL error:", err);
                         Swal.fire({
                             icon: "error",
                             title: "Gagal",
@@ -643,14 +659,10 @@
 
         /** === Event Listeners Modal === */
         document.body.addEventListener("click", (e) => {
-            console.log("👉 Klik di body:", e.target);
             const btn = e.target.closest("[data-crud]");
-            console.log("🔍 Tombol terdeteksi:", btn);
             if (!btn) return;
 
             const action = btn.dataset.crud;
-            console.log("🎯 Action:", action);
-
             switch (action) {
                 case "add":
                 case "edit":
@@ -676,7 +688,6 @@
 
         modalForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        console.log("📤 Submit form ke:", currentUrl, "Method:", currentMethod);
 
         const formData = new FormData(modalForm);
         if (currentMethod !== "POST") formData.append("_method", currentMethod);
@@ -696,8 +707,6 @@
                 },
                 body: formData,
             });
-
-            console.log("📡 FORM response status:", res.status);
 
             if (!res.ok) {
                 if (res.status === 422) {
